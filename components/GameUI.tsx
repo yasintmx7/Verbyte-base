@@ -122,8 +122,6 @@ const GameUI: React.FC<{
     }
   };
 
-  const timerPercentage = (gameState.timeLeft / 30) * 100;
-  const isTimeLow = gameState.timeLeft <= 7;
 
   return (
     <div className={`flex flex-col items-center justify-center min-h-[80vh] w-full max-w-4xl mx-auto px-4 ${gameState.isStunned ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -136,11 +134,8 @@ const GameUI: React.FC<{
         </div>
 
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-6 py-2 rounded-full font-bold tracking-widest uppercase mb-4 shadow-lg shadow-blue-900/20">
+          <div className="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-6 py-2 rounded-full font-bold tracking-widest uppercase shadow-lg shadow-blue-900/20">
             Topic: {gameState.category}
-          </div>
-          <div className={`text-4xl font-bold font-mono ${isTimeLow ? 'text-rose-500 animate-pulse' : 'text-slate-200'}`}>
-            {gameState.timeLeft}s
           </div>
         </div>
       </div>

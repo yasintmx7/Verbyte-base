@@ -156,7 +156,7 @@ const App: React.FC = () => {
           // Create Opponent Object
           const opponentPlayer: Player = {
             id: joiner,
-            name: `Rival ${joiner.substring(0, 4)}`,
+            name: `Rival 0x...${joiner.substring(joiner.length - 4)}`,
             avatar: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${joiner}`,
             hp: INITIAL_HP,
             isReady: true,
