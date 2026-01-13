@@ -171,7 +171,7 @@ const App: React.FC = () => {
     setTimeout(() => {
       const bot: Player = {
         id: 'onchain-challenger',
-        name: roomId ? 'Shadow_Guest.eth' : 'Cipher_Ghost.eth',
+        name: roomId ? 'Room Opponent (Waiting...)' : 'Cipher_Ghost.eth',
         avatar: `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${roomId || 'BaseGhost'}${Date.now()}`,
         hp: INITIAL_HP,
         score: 0,
@@ -276,9 +276,11 @@ const App: React.FC = () => {
     }
   }, [gameState.status, account, addLog]);
 
-  // Bot Logic
+  // Bot Logic (Disabled in Multiplayer Rooms)
   useEffect(() => {
     if (gameState.status === GameStatus.PLAYING) {
+      if (roomId) return; // Disable fake moves in Room Mode (Opponent is real human playing async)
+
       const bot = gameState.players.find(p => p.isBot);
       if (bot && bot.hp > 0) {
         const botTimer = setInterval(() => {
@@ -374,7 +376,7 @@ const App: React.FC = () => {
           ) : (
             !account ? (
               <button onClick={connectWallet} disabled={isConnecting} className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm">
-                <Wallet size={16} /> {isConnecting ? 'Connect Wallet' : 'Connecting...'}
+                <Wallet size={16} /> {isConnecting ? 'Connecting...' : 'Connect Wallet'}
               </button>
             ) : (
               <div className="flex items-center gap-2">
