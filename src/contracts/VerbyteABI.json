@@ -30,6 +30,31 @@
             {
                 "indexed": false,
                 "internalType": "address",
+                "name": "host",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "guest",
+                "type": "address"
+            }
+        ],
+        "name": "GameStarted",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "roomId",
+                "type": "string"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
                 "name": "winner",
                 "type": "address"
             }
@@ -109,6 +134,29 @@
         "inputs": [
             {
                 "internalType": "string",
+                "name": "roomId",
+                "type": "string"
+            },
+            {
+                "internalType": "address",
+                "name": "host",
+                "type": "address"
+            },
+            {
+                "internalType": "string",
+                "name": "hiddenWord",
+                "type": "string"
+            }
+        ],
+        "name": "startGame",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
                 "name": "",
                 "type": "string"
             }
@@ -144,11 +192,6 @@
                 "internalType": "enum VerbyteGame.GameStatus",
                 "name": "status",
                 "type": "uint8"
-            },
-            {
-                "internalType": "address",
-                "name": "turn",
-                "type": "address"
             },
             {
                 "internalType": "address",
