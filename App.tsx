@@ -8,6 +8,7 @@ import { Wallet, Globe, ShieldAlert, Cpu, Share2, LogOut } from 'lucide-react';
 import { ethers } from 'ethers';
 import { signGameMove, relayTransaction, executeDirectMove } from './src/services/GaslessRelayer';
 import { CONTRACT_CONFIG } from './src/config/contracts';
+import { updateStats } from './src/services/statsService';
 
 declare global {
   interface Window {
@@ -142,15 +143,80 @@ const App: React.FC = () => {
 
   // Inside App component...
 
-  // REMOVED: Event Listener useEffect
+  // Listen for On-Chain Events (Multiplayer Sync)
+  useEffect(() => {
+    if (!contract || !roomId) return;
 
-  const createPrivateRoom = () => {
+    const onPlayerJoined = (id: string, joiner: string) => {
+      if (id === roomId) {
+        // If we are waiting in the lobby/matchmaking and someone joins
+        if (joiner.toLowerCase() !== account?.toLowerCase()) {
+          addLog(`Rival Node ${joiner.substring(0, 6)} detected! Synchronizing...`, "success");
+
+          // Create Opponent Object
+          const opponentPlayer: Player = {
+            id: joiner,
+            name: `Rival ${joiner.substring(0, 4)}`,
+            avatar: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${joiner}`,
+            hp: INITIAL_HP,
+            isReady: true,
+            score: 0
+          };
+
+          // HOST START: If we are already in MATCHMAKING state, start the game now.
+          // We use a functional update to ensure we have the latest state if needed, 
+          // but strictly we just need to transition to PLAYING.
+          setGameState(prev => {
+            if (prev.status === GameStatus.MATCHMAKING) {
+              return {
+                ...prev,
+                status: GameStatus.PLAYING,
+                players: [prev.players[0], opponentPlayer],
+                timeLeft: TURN_DURATION,
+                turnStartTime: Date.now()
+              };
+            }
+            return prev;
+          });
+
+          // Also trigger a Taunt
+          setCipherTaunt("OPPONENT_DETECTED_//_INITIATING_BATTLE_PROTOCOL");
+        }
+      }
+    };
+
+    contract.on("PlayerJoined", onPlayerJoined);
+    return () => { contract.off("PlayerJoined", onPlayerJoined); };
+  }, [contract, roomId, account, addLog]);
+
+  const createPrivateRoom = async () => {
+    if (!contract || !account) return alert("Wallet not connected.");
+
     const newId = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const url = new URL(window.location.href);
-    url.searchParams.set('room', newId);
-    window.history.pushState({}, '', url);
-    setRoomId(newId);
-    addLog(`Private Node ${newId} initialized. Sync the Byte.`, 'success');
+    const wordData = await fetchRandomWord();
+
+    addLog("Initializing Private Node on-chain...", "warn");
+    try {
+      const tx = await contract.createGame(newId, wordData.word);
+      addLog("Broadcasting Node ID...", "info");
+      await tx.wait();
+
+      // Success
+      const url = new URL(window.location.href);
+      url.searchParams.set('room', newId);
+      window.history.pushState({}, '', url);
+      setRoomId(newId);
+      addLog(`Node ${newId} secured. Waiting for peer...`, 'success');
+
+      // Pre-load word into state so it's ready when we start
+      // But we stay in LOBBY until user clicks "AUTHORIZE UPLINK" (which calls startMatchmaking)
+      // Actually, we should probably auto-enter matchmaking? 
+      // No, let user choose avatar/ready up.
+
+    } catch (e: any) {
+      console.error(e);
+      addLog(`Initialization failed: ${e.reason || e.message}`, 'error');
+    }
   };
 
   const startGame = async (players: Player[]) => {
@@ -176,10 +242,8 @@ const App: React.FC = () => {
     setCipherTaunt(taunt);
   };
 
-  const startMatchmaking = (avatar: string) => {
+  const startMatchmaking = async (avatar: string) => {
     if (!account) return;
-
-    // REMOVED: On-Chain Join Logic
 
     const player: Player = {
       id: account,
@@ -189,11 +253,79 @@ const App: React.FC = () => {
       score: 0,
       isReady: true,
     };
-    setGameState(prev => ({ ...prev, status: GameStatus.MATCHMAKING, players: [player] }));
-    addLog(roomId ? `Awaiting challenger in Node ${roomId}...` : "Scanning for network challengers...", "info");
 
-    // Single Player / Bot Logic (Only if NO Room)
-    if (!roomId) {
+    setGameState(prev => ({ ...prev, status: GameStatus.MATCHMAKING, players: [player] }));
+
+    // Multiplayer Logic
+    if (roomId && contract) {
+      addLog(`Connecting to Node ${roomId}...`, "warn");
+
+      try {
+        // Check if we are Host or Guest
+        const gameData = await contract.games(roomId);
+        const hostAddress = gameData[0]; // player1
+
+        if (hostAddress.toLowerCase() === account.toLowerCase()) {
+          // I am HOST.
+          addLog("Node ownership verified. Waiting for challenger link...", "info");
+          // We stay in MATCHMAKING. The 'useEffect' onPlayerJoined will trigger Game Start.
+        } else {
+          // I am GUEST. Join the game.
+          if (gameData[1] !== '0x0000000000000000000000000000000000000000') {
+            // Player 2 already exists?
+            addLog("Node is full.", "error");
+            return;
+          }
+
+          const tx = await contract.joinGame(roomId);
+          addLog("Establishing uplink...", "info");
+          await tx.wait();
+          addLog("Connection Established.", "success");
+
+          // Start Game Immediately (Host is already there)
+          const hostPlayer: Player = {
+            id: hostAddress,
+            name: `Rival ${hostAddress.substring(0, 4)}`,
+            avatar: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${hostAddress}`,
+            hp: INITIAL_HP,
+            isReady: true,
+            score: 0
+          };
+
+          // We also need the word! 
+          // Contract doesn't expose word publicly in `games` struct usually if private? 
+          // Wait, `games` struct returns `word`.
+          // My ABI has `word` in `games` return?
+          // Step 425 output says `word` is returned (index 2).
+          const word = gameData[2];
+          if (word) {
+            // Start Game
+            setGameState({
+              status: GameStatus.PLAYING,
+              word: word,
+              category: "DECRYPTED_SIGNAL",
+              hint: "CRACK_THE_CODE",
+              guessedLetters: [],
+              players: [player, hostPlayer],
+              turnStartTime: Date.now(),
+              timeLeft: TURN_DURATION,
+              isStunned: false,
+              powerUps: { vowelScanAvailable: true, shieldBoostAvailable: true }
+            });
+            setLogs([{ msg: `System: Uplink to ${roomId} secure. Decrypting...`, type: "info" }]);
+          } else {
+            addLog("Failed to sync word data.", "error");
+          }
+        }
+      } catch (e: any) {
+        console.error("Matchmaking Error:", e);
+        addLog(`Connection failed/rejected.`, 'error');
+        setGameState(prev => ({ ...prev, status: GameStatus.LOBBY }));
+      }
+
+    } else {
+      // Single Player / Bot Logic
+      addLog("Scanning for network challengers...", "info");
       setTimeout(() => {
         const bot: Player = {
           id: 'onchain-challenger',
@@ -206,26 +338,6 @@ const App: React.FC = () => {
         };
         startGame([player, bot]);
       }, 3500);
-    } else {
-      // Multiplayer: Wait for opponent to sync at end.
-      // We start game immediately for the local player.
-      startGame([player]);
-
-      // Add placeholder opponent visual (Idle)
-      setTimeout(() => {
-        setGameState(prev => ({
-          ...prev,
-          players: [...prev.players, {
-            id: 'opponent-placeholder',
-            name: 'Room Opponent (Pending)',
-            avatar: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${roomId}opp`,
-            hp: INITIAL_HP,
-            score: 0,
-            isReady: true,
-            isBot: true // Marked as bot to suppress input, but named Opponent
-          }]
-        }));
-      }, 1000);
     }
   };
 
@@ -355,12 +467,15 @@ const App: React.FC = () => {
     if (allGuessed) {
       setGameState(prev => ({ ...prev, status: GameStatus.WON, winnerId: localPlayer?.id }));
       addLog("Decrypted. Victory committed.", "success");
+      updateStats('win');
     } else if (localPlayer && localPlayer.hp <= 0) {
       setGameState(prev => ({ ...prev, status: GameStatus.LOST, winnerId: opponent?.id }));
       addLog("Terminal failure. Node offline.", "error");
+      updateStats('loss');
     } else if (opponent && opponent.hp <= 0) {
       setGameState(prev => ({ ...prev, status: GameStatus.WON, winnerId: localPlayer?.id }));
       addLog("Opponent link severed. Node ownership confirmed.", "success");
+      updateStats('win');
     }
   }, [gameState.status, gameState.word, gameState.guessedLetters, gameState.players, account, addLog]);
 

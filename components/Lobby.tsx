@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
-import { ShieldCheck, Sparkles, Terminal, Cpu, Database, Share2, Plus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShieldCheck, Sparkles, Terminal, Cpu, Database, Share2, Plus, Trophy, Target, History } from 'lucide-react';
+import { getStats, PlayerStats } from '../src/services/statsService';
 
 interface LobbyProps {
   onStart: (avatar: string) => void;
@@ -55,7 +56,14 @@ const Lobby: React.FC<LobbyProps> = ({ onStart, walletConnected, onCreateRoom, r
   const [avatarIndex, setAvatarIndex] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
   const [joinCode, setJoinCode] = useState('');
+  const [stats, setStats] = useState<PlayerStats | null>(null);
+
+  useEffect(() => {
+    setStats(getStats());
+  }, []);
+
   const avatars = Array.from({ length: 5 }, (_, i) => `https://api.dicebear.com/7.x/pixel-art/svg?seed=Verbyte${i}`);
+
 
   return (
     <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -78,6 +86,27 @@ const Lobby: React.FC<LobbyProps> = ({ onStart, walletConnected, onCreateRoom, r
             Verbyte is the premier onchain word arena. Decode hidden protocol strings, protect your node integrity, and secure your permanent record on the Base ledger.
           </p>
         </div>
+
+        {stats && (
+          <div className="grid grid-cols-4 gap-4 bg-slate-900/50 p-4 rounded-xl border border-white/5">
+            <div className="text-center">
+              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Games</div>
+              <div className="text-xl font-mono font-bold text-white">{stats.gamesPlayed}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest mb-1">Wins</div>
+              <div className="text-xl font-mono font-bold text-emerald-400">{stats.wins}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-[10px] text-rose-500 font-bold uppercase tracking-widest mb-1">Losses</div>
+              <div className="text-xl font-mono font-bold text-red-400">{stats.losses}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-[10px] text-amber-500 font-bold uppercase tracking-widest mb-1">Streak</div>
+              <div className="text-xl font-mono font-bold text-amber-400">{stats.winStreak}</div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="p-5 glass rounded-2xl border-white/5 group hover:border-blue-500/30 transition-all">
