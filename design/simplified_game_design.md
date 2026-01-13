@@ -1,59 +1,49 @@
-# Simplified Blockchain Game Design: "Session-Based" Play
+# Verbyte Game Design System
 
-## 1. Concept Overview
-The core idea is **"Play Local, Verify Global."** 
-Instead of treating every game action (jumping, shooting, guessing a letter) as a blockchain transaction, the entire game session runs locally in the user's browser (off-chain). The blockchain is only used **once** at the very end of the game to verify the result and reward the player.
+A hybrid blockchain game supporting distinct Single-Player and Multiplayer modes.
 
-This transforms the experience from a "slow, expensive financial app" into a "smooth, instant video game" that happens to have real ownership features.
+## 1. Game Modes
 
-## 2. Game Flow
+### A. Single-Player Mode (PvE)
+*   **User Experience**: You vs. The Machine.
+*   **Opponent**: `Cipher_Ghost.eth` (AI Bot).
+*   **Behavior**: 
+    *   The bot actively makes moves alongside you.
+    *   It guesses a letter every 5 seconds.
+    *   It has a 94% "miss chance" (mostly harmless), but occasionally finds correct letters, putting time pressure on the player.
+*   **Win Condition**: Solve the word before the Bot solves it AND before you run out of HP.
 
-1.  **Start (Off-Chain)**: 
-    *   User clicks "Start Game".
-    *   **No transaction required.**
-    *   The game initializes locally. A random word/level is generated. 
-    *   *Optional Security*: The game requests a cryptographic signature (free) from the wallet to "sign in" and prevent simple botting, but no gas is paid.
+### B. Multiplayer Mode (PvP)
+*   **User Experience**: You vs. A Friend.
+*   **Opponent**: `Room Opponent (Waiting...)` (Human).
+*   **Behavior**:
+    *   The opponent slot is visible but **Idle**. 
+    *   No automatic moves occur on the opponent's side.
+    *   This represents the fact that your friend is playing their own *parallel session* on their device.
+*   **Win Condition**: Solve the word as fast as possible.
+*   **Sync**:
+    *   When you finish, you click **"Sync & Compare Scores"**.
+    *   The app polls the blockchain to find your opponent's submission.
+    *   **Final Result**: A scoreboard appears showing "You: 100 vs Opponent: 85".
 
-2.  **Gameplay (Off-Chain)**:
-    *   User plays the game normally (e.g., guessing letters in Hangman).
-    *   **Zero interruptions.** No wallet popups. No waiting for blocks.
-    *   All state (Health, Score, Guesses) is managed in the browser's memory.
+## 2. Room Code System
 
-3.  **End & Commit (On-Chain)**:
-    *   Game ends (Win or Loss).
-    *   **Win**: User sees a "Claim Victory" button.
-    *   **Action**: User clicks "Claim", signs ONE transaction.
-    *   **Payload**: The transaction contains the Final Score, the Word solved, and a "Proof" (like a replay log or a hash) that the contract verifies.
+### Creation
+*   User clicks **"INITIALIZE_PRIVATE_NODE"**.
+*   System generates a 6-character code (e.g., `203XVAKL`).
+*   **Seeding**: This code is used to seed the Random Number Generator. This ensures **Both players get the same word** (e.g., "HOUSE").
 
-## 3. Benefits & Trade-offs
+### Joining
+Two methods to join:
+1.  **Shared Link**: `verbyte.app/?room=203XVAKL` (Auto-joins).
+2.  **Manual Code**: Enter `203XVAKL` in the "ENTER ROOM CODE" input in the Lobby.
 
-| Feature | Session-Based (New) | Fully On-Chain (Old) |
-| :--- | :--- | :--- |
-| **User Experience** | Instant, 60fps feel. Familiar to gamers. | Slow, interrupted by popups every move. |
-| **Cost (Gas)** | Very Low (1 Tx per game). | Very High (1 Tx per move). |
-| **Accessibility** | High. Can play without knowing crypto until the end. | Low. Needs ETH/Gas before minimal fun. |
-| **Security** | Moderate. Client-side cheating is possible if not validated carefully. | High. Every move verified by protocol rules. |
+## 3. Technical Architecture
 
-## 4. Technical Implementation Strategy
+### "Play Local, Verify Global"
+1.  **Session**: The game runs 100% off-chain in the browser (60fps, no lag).
+2.  **Commit**: Only the **Verification** (Win State) is sent to the blockchain.
+3.  **Sync**: Multiplayer results are aggregated by reading two separate commit transactions from the Base blockchain.
 
-To secure the off-chain session without ruining UX:
-
-### A. The "Optimistic" Approach (Easiest UX)
-1.  **Frontend**: Runs the game logic in Javascript.
-2.  **Submission**: Sends `submitScore(score, word)` to the contract.
-3.  **Validation**: A backend "Oracle" or the Contract itself checks simple constraints (e.g., "Is `word` valid?", "Did enough time pass?"). 
-    *   *Trade-off*: Hardcore hackers might mock the frontend to send fake wins.
-
-### B. The "Verifiable Log" Approach (Best Balance)
-1.  **Frontend**: Records every input (e.g., `["A", "T", "E", ...]` and timestamps).
-2.  **Submission**: Encodes these moves into the final transaction `submitGame(moves[])`.
-3.  **Contract**: Replays the moves internally. "If I start with word X and apply moves A, B, C... do I get a Win?"
-    *   If Yes -> Mint Reward.
-    *   If No -> Revert Transaction.
-    *   *Benefit*: impossible to fake a win without actually finding the solution.
-
-## 5. Genre Suggestions
-This model fits games where "Proof of Work" is finding a solution:
-*   **Word Games (Wordle/Hangman)**: The solution is the proof.
-*   **Tower Defense**: Submit the placement of towers; contract simulates the waves.
-*   **Auto-Battlers**: Submit the team composition; contract calculates the fight.
+---
+*Design implemented in Verbyte v2.*

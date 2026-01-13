@@ -1,18 +1,106 @@
 [
     {
+        "anonymous": false,
         "inputs": [
             {
-                "internalType": "uint256",
-                "name": "gridIndex",
-                "type": "uint256"
+                "indexed": false,
+                "internalType": "string",
+                "name": "roomId",
+                "type": "string"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "creator",
+                "type": "address"
+            }
+        ],
+        "name": "GameCreated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "roomId",
+                "type": "string"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "winner",
+                "type": "address"
+            }
+        ],
+        "name": "GameEnded",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "roomId",
+                "type": "string"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "player",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "letter",
+                "type": "string"
+            },
+            {
+                "indexed": false,
+                "internalType": "bool",
+                "name": "isHit",
+                "type": "bool"
+            }
+        ],
+        "name": "MoveMade",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "roomId",
+                "type": "string"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "joiner",
+                "type": "address"
+            }
+        ],
+        "name": "PlayerJoined",
+        "type": "event"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "roomId",
+                "type": "string"
             },
             {
                 "internalType": "string",
-                "name": "char",
+                "name": "hiddenWord",
                 "type": "string"
             }
         ],
-        "name": "submitMove",
+        "name": "createGame",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -20,62 +108,86 @@
     {
         "inputs": [
             {
-                "components": [
-                    {
-                        "internalType": "address",
-                        "name": "from",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "to",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "value",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "gas",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "nonce",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "bytes",
-                        "name": "data",
-                        "type": "bytes"
-                    }
-                ],
-                "internalType": "struct MinimalForwarder.ForwardRequest",
-                "name": "req",
-                "type": "tuple"
-            },
-            {
-                "internalType": "bytes",
-                "name": "signature",
-                "type": "bytes"
+                "internalType": "string",
+                "name": "",
+                "type": "string"
             }
         ],
-        "name": "execute",
+        "name": "games",
         "outputs": [
             {
-                "internalType": "bool",
-                "name": "",
-                "type": "bool"
+                "internalType": "address",
+                "name": "player1",
+                "type": "address"
             },
             {
-                "internalType": "bytes",
-                "name": "",
-                "type": "bytes"
+                "internalType": "address",
+                "name": "player2",
+                "type": "address"
+            },
+            {
+                "internalType": "string",
+                "name": "word",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "guessedLetters",
+                "type": "string"
+            },
+            {
+                "internalType": "uint256",
+                "name": "lastMoveTimestamp",
+                "type": "uint256"
+            },
+            {
+                "internalType": "enum VerbyteGame.GameStatus",
+                "name": "status",
+                "type": "uint8"
+            },
+            {
+                "internalType": "address",
+                "name": "turn",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "winner",
+                "type": "address"
             }
         ],
-        "stateMutability": "payable",
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "roomId",
+                "type": "string"
+            }
+        ],
+        "name": "joinGame",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "roomId",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "letter",
+                "type": "string"
+            }
+        ],
+        "name": "submitMove",
+        "outputs": [],
+        "stateMutability": "nonpayable",
         "type": "function"
     }
 ]
