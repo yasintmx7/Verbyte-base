@@ -2,7 +2,12 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { WordData } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize lazily to prevent crash on load if key is missing
+const getAI = () => {
+  const key = process.env.API_KEY || process.env.GEMINI_API_KEY || "";
+  if (!key) throw new Error("Missing API Key");
+  return new GoogleGenAI({ apiKey: key });
+};
 
 // Simplified Local Word List for "Easy Mode" - 100+ Words, 20+ Categories
 const LOCAL_WORDS: WordData[] = [
@@ -169,7 +174,7 @@ export async function fetchRandomWord(): Promise<WordData> {
 
 export async function fetchCipherTaunt(status: string, hp: number): Promise<string> {
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `You are the 'Cipher Ghost', a hostile AI guarding a secure node. Generate a very short (max 10 words), creepy, cyberpunk-style taunt for a player. Status: ${status}, Player HP: ${hp}/6. Keep it professional but menacing.`,
     });
